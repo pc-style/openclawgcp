@@ -7,15 +7,22 @@ services:
     depends_on:
       - redis
       - playwright
-    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    command:
+      - node
+      - dist/index.js
+      - gateway
+      - --bind
+      - ${OPENCLAW_GATEWAY_BIND:-lan}
+      - --port
+      - ${OPENCLAW_GATEWAY_PORT:-18789}
     volumes:
-      - ~/.openclaw:/home/node/.openclaw
-      - ~/.openclaw/workspace:/home/node/.openclaw/workspace
-      - ~/.openclaw/logs:/home/node/.openclaw/logs
+      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_LOGS_DIR}:/home/node/.openclaw/logs
     env_file:
       - .env
     ports:
-      - "18789:18789"
+      - "${OPENCLAW_GATEWAY_HOST_BIND:-0.0.0.0}:${OPENCLAW_GATEWAY_PORT:-18789}:18789"
     environment:
       - NODE_ENV=production
       - TZ=Europe/Warsaw

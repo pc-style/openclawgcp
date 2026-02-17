@@ -136,6 +136,30 @@ sudo docker compose restart openclaw-gateway
 ./scripts/setup-openclaw.sh
 ```
 
+## Day-2 Ops (From Your Laptop)
+
+This repo includes a helper wrapper around `gcloud compute ssh/scp`:
+
+```bash
+# Service status
+./scripts/openclaw-ops.sh status
+
+# Health probe (/_health then /health)
+./scripts/openclaw-ops.sh health
+
+# Tail logs
+./scripts/openclaw-ops.sh logs 100
+
+# Restart the gateway
+./scripts/openclaw-ops.sh restart
+
+# Sync local configs/openclaw.json to the VM then restart
+./scripts/openclaw-ops.sh sync-config
+
+# Verify outbound Telegram connectivity from the VM
+./scripts/openclaw-ops.sh telegram-check
+```
+
 ## Troubleshooting
 
 | Issue | Fix |

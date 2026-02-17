@@ -183,6 +183,7 @@ main() {
   local OPENCLAW_IMAGE
   local OPENCLAW_CONFIG_DIR
   local OPENCLAW_WORKSPACE_DIR
+  local OPENCLAW_LOGS_DIR
   local OPENCLAW_GATEWAY_PORT
   local OPENCLAW_BRIDGE_PORT
   local OPENCLAW_GATEWAY_HOST_BIND
@@ -195,14 +196,17 @@ main() {
   local GEMINI_BASE_URL
   local KIMI_API_KEY
   local KIMI_BASE_URL
-  local GROQ_API_KEY
-  local GROQ_BASE_URL
   local R2_ACCESS_KEY_ID
   local R2_SECRET_ACCESS_KEY
   local KEOTHOM_MCP_API_KEY
   local CLAUDE_AI_SESSION_KEY
   local CLAUDE_WEB_SESSION_KEY
   local CLAUDE_WEB_COOKIE
+
+  local ENABLE_TELEGRAM
+  local TELEGRAM_BOT_TOKEN
+  local TELEGRAM_ALLOW_FROM
+  local TELEGRAM_GROUP_ALLOW_FROM
 
   local ENABLE_PUBLIC_URL
   local PUBLIC_URL_FQDN
@@ -237,9 +241,10 @@ main() {
   prompt_value OPENCLAW_IMAGE "OPENCLAW_IMAGE" "openclaw:chromium" false true
   prompt_value OPENCLAW_CONFIG_DIR "OPENCLAW_CONFIG_DIR" "/home/${local_user}/.openclaw" false true
   prompt_value OPENCLAW_WORKSPACE_DIR "OPENCLAW_WORKSPACE_DIR" "/home/${local_user}/.openclaw/workspace" false true
+  prompt_value OPENCLAW_LOGS_DIR "OPENCLAW_LOGS_DIR" "/home/${local_user}/.openclaw/logs" false true
   prompt_value OPENCLAW_GATEWAY_PORT "OPENCLAW_GATEWAY_PORT" "18789" false true
   prompt_value OPENCLAW_BRIDGE_PORT "OPENCLAW_BRIDGE_PORT" "18790" false true
-  prompt_value OPENCLAW_GATEWAY_HOST_BIND "OPENCLAW_GATEWAY_HOST_BIND" "127.0.0.1" false true
+  prompt_value OPENCLAW_GATEWAY_HOST_BIND "OPENCLAW_GATEWAY_HOST_BIND" "0.0.0.0" false true
   prompt_value OPENCLAW_BRIDGE_HOST_BIND "OPENCLAW_BRIDGE_HOST_BIND" "127.0.0.1" false true
   prompt_value OPENCLAW_GATEWAY_BIND "OPENCLAW_GATEWAY_BIND" "lan" false true
   prompt_value OPENCLAW_AGENT_MODEL "OPENCLAW_AGENT_MODEL" "gemini/gemini-3-flash-preview" false true
@@ -249,8 +254,6 @@ main() {
   prompt_value GEMINI_BASE_URL "GEMINI_BASE_URL" "https://generativelanguage.googleapis.com/v1beta/openai" false true
   prompt_value KIMI_API_KEY "KIMI_API_KEY" "" true true
   prompt_value KIMI_BASE_URL "KIMI_BASE_URL" "https://api.moonshot.cn/v1" false true
-  prompt_value GROQ_API_KEY "GROQ_API_KEY" "" true true
-  prompt_value GROQ_BASE_URL "GROQ_BASE_URL" "https://api.groq.com/openai/v1" false true
   prompt_value R2_ACCESS_KEY_ID "R2_ACCESS_KEY_ID (optional)" "" false false
   prompt_value R2_SECRET_ACCESS_KEY "R2_SECRET_ACCESS_KEY (optional)" "" true false
   prompt_value KEOTHOM_MCP_API_KEY "KEOTHOM_MCP_API_KEY (optional)" "" true false
@@ -258,7 +261,17 @@ main() {
   prompt_value CLAUDE_WEB_SESSION_KEY "CLAUDE_WEB_SESSION_KEY (optional)" "" true false
   prompt_value CLAUDE_WEB_COOKIE "CLAUDE_WEB_COOKIE (optional)" "" true false
 
-  prompt_yes_no ENABLE_PUBLIC_URL "Configure a public URL (A record + reverse proxy)?" yes
+  prompt_yes_no ENABLE_TELEGRAM "Enable Telegram channel?" yes
+  TELEGRAM_BOT_TOKEN=""
+  TELEGRAM_ALLOW_FROM=""
+  TELEGRAM_GROUP_ALLOW_FROM=""
+  if [[ "$ENABLE_TELEGRAM" == "true" ]]; then
+    prompt_value TELEGRAM_BOT_TOKEN "TELEGRAM_BOT_TOKEN" "" true true
+    prompt_value TELEGRAM_ALLOW_FROM "TELEGRAM_ALLOW_FROM (CSV of user IDs/usernames)" "" false true
+    prompt_value TELEGRAM_GROUP_ALLOW_FROM "TELEGRAM_GROUP_ALLOW_FROM (CSV, optional)" "" false false
+  fi
+
+  prompt_yes_no ENABLE_PUBLIC_URL "Configure a public URL (A record + reverse proxy)?" no
   PUBLIC_URL_FQDN=""
   ENABLE_CADDY="false"
   CADDY_EMAIL=""
@@ -301,6 +314,7 @@ main() {
   printf 'Repo:                   %s @ %s\n' "$DEPLOY_REPO_URL" "$DEPLOY_REPO_REF"
   printf 'Remote app directory:   %s\n' "$REMOTE_APP_DIR"
   printf 'Gateway port binding:   %s:%s\n' "$OPENCLAW_GATEWAY_HOST_BIND" "$OPENCLAW_GATEWAY_PORT"
+  printf 'Telegram enabled:       %s\n' "$ENABLE_TELEGRAM"
   if [[ "$ENABLE_PUBLIC_URL" == "true" ]]; then
     printf 'Public URL FQDN:        %s\n' "$PUBLIC_URL_FQDN"
     printf 'Caddy enabled:          %s\n' "$ENABLE_CADDY"
@@ -341,12 +355,16 @@ main() {
 
   log "Ensuring firewall rule exists..."
   if ! gcloud compute firewall-rules describe "$FIREWALL_RULE_NAME" >/dev/null 2>&1; then
+    local rules="tcp:22,tcp:${OPENCLAW_GATEWAY_PORT}"
+    if [[ "$ENABLE_PUBLIC_URL" == "true" && "$ENABLE_CADDY" == "true" ]]; then
+      rules="tcp:22,tcp:80,tcp:443,tcp:${OPENCLAW_GATEWAY_PORT}"
+    fi
     gcloud compute firewall-rules create "$FIREWALL_RULE_NAME" \
       --direction=INGRESS \
       --priority=1000 \
       --network=default \
       --action=ALLOW \
-      --rules="tcp:22,tcp:80,tcp:443,tcp:${OPENCLAW_GATEWAY_PORT}" \
+      --rules="$rules" \
       --source-ranges=0.0.0.0/0 \
       --target-tags="$INSTANCE_TAG" \
       --description="Allow SSH/HTTP/HTTPS/OpenClaw inbound traffic"
@@ -427,6 +445,7 @@ main() {
     write_env_line OPENCLAW_GATEWAY_TOKEN "$OPENCLAW_GATEWAY_TOKEN"
     write_env_line OPENCLAW_CONFIG_DIR "$OPENCLAW_CONFIG_DIR"
     write_env_line OPENCLAW_WORKSPACE_DIR "$OPENCLAW_WORKSPACE_DIR"
+    write_env_line OPENCLAW_LOGS_DIR "$OPENCLAW_LOGS_DIR"
     write_env_line OPENCLAW_GATEWAY_PORT "$OPENCLAW_GATEWAY_PORT"
     write_env_line OPENCLAW_BRIDGE_PORT "$OPENCLAW_BRIDGE_PORT"
     write_env_line OPENCLAW_GATEWAY_HOST_BIND "$OPENCLAW_GATEWAY_HOST_BIND"
@@ -439,14 +458,16 @@ main() {
     write_env_line GEMINI_BASE_URL "$GEMINI_BASE_URL"
     write_env_line KIMI_API_KEY "$KIMI_API_KEY"
     write_env_line KIMI_BASE_URL "$KIMI_BASE_URL"
-    write_env_line GROQ_API_KEY "$GROQ_API_KEY"
-    write_env_line GROQ_BASE_URL "$GROQ_BASE_URL"
     write_env_line R2_ACCESS_KEY_ID "$R2_ACCESS_KEY_ID"
     write_env_line R2_SECRET_ACCESS_KEY "$R2_SECRET_ACCESS_KEY"
     write_env_line KEOTHOM_MCP_API_KEY "$KEOTHOM_MCP_API_KEY"
     write_env_line CLAUDE_AI_SESSION_KEY "$CLAUDE_AI_SESSION_KEY"
     write_env_line CLAUDE_WEB_SESSION_KEY "$CLAUDE_WEB_SESSION_KEY"
     write_env_line CLAUDE_WEB_COOKIE "$CLAUDE_WEB_COOKIE"
+    write_env_line ENABLE_TELEGRAM "$ENABLE_TELEGRAM"
+    write_env_line TELEGRAM_BOT_TOKEN "$TELEGRAM_BOT_TOKEN"
+    write_env_line TELEGRAM_ALLOW_FROM "$TELEGRAM_ALLOW_FROM"
+    write_env_line TELEGRAM_GROUP_ALLOW_FROM "$TELEGRAM_GROUP_ALLOW_FROM"
     write_env_line PUBLIC_URL_FQDN "$PUBLIC_URL_FQDN"
   } > "$ENV_FILE"
   chmod 600 "$ENV_FILE"
@@ -475,218 +496,76 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 sudo usermod -aG docker "\$USER" >/dev/null 2>&1 || true
 
-if [[ -d "\$APP_DIR/.git" ]]; then
-  git -C "\$APP_DIR" fetch --all --prune --tags
-else
-  rm -rf "\$APP_DIR"
-  git clone "\$REPO_URL" "\$APP_DIR"
-  git -C "\$APP_DIR" fetch --all --prune --tags
-fi
+mkdir -p "\$APP_DIR/releases"
+TS=\$(date +%Y%m%d%H%M%S)
+RELEASE_DIR="\$APP_DIR/releases/\$TS"
 
-if git -C "\$APP_DIR" show-ref --verify --quiet "refs/remotes/origin/\$REPO_REF"; then
-  git -C "\$APP_DIR" checkout -B "\$REPO_REF" "origin/\$REPO_REF"
-elif git -C "\$APP_DIR" rev-parse --verify "\$REPO_REF^{commit}" >/dev/null 2>&1; then
-  git -C "\$APP_DIR" checkout "\$REPO_REF"
+git clone "\$REPO_URL" "\$RELEASE_DIR"
+git -C "\$RELEASE_DIR" fetch --all --prune --tags
+
+if git -C "\$RELEASE_DIR" show-ref --verify --quiet "refs/remotes/origin/\$REPO_REF"; then
+  git -C "\$RELEASE_DIR" checkout -B "\$REPO_REF" "origin/\$REPO_REF"
+elif git -C "\$RELEASE_DIR" rev-parse --verify "\$REPO_REF^{commit}" >/dev/null 2>&1; then
+  git -C "\$RELEASE_DIR" checkout "\$REPO_REF"
 else
-  DEFAULT_BRANCH=\$(git -C "\$APP_DIR" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)
+  DEFAULT_BRANCH=\$(git -C "\$RELEASE_DIR" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)
   if [[ -z "\$DEFAULT_BRANCH" ]]; then
     DEFAULT_BRANCH="main"
   fi
   echo "[WARN] Requested ref '\$REPO_REF' not found; using '\$DEFAULT_BRANCH' instead."
-  git -C "\$APP_DIR" checkout -B "\$DEFAULT_BRANCH" "origin/\$DEFAULT_BRANCH" || git -C "\$APP_DIR" checkout "\$DEFAULT_BRANCH"
+  git -C "\$RELEASE_DIR" checkout -B "\$DEFAULT_BRANCH" "origin/\$DEFAULT_BRANCH" || git -C "\$RELEASE_DIR" checkout "\$DEFAULT_BRANCH"
 fi
 
-mkdir -p "\$APP_DIR/custom-skills"
+ln -sfn "\$RELEASE_DIR" "\$APP_DIR/current"
+CURRENT_DIR="\$APP_DIR/current"
+
+mkdir -p "\$CURRENT_DIR/custom-skills"
 mkdir -p "\$OPENCLAW_CONFIG_DIR" "\$OPENCLAW_WORKSPACE_DIR"
-cp "\$REMOTE_ENV_FILE" "\$APP_DIR/.env"
-chmod 600 "\$APP_DIR/.env"
+cp "\$REMOTE_ENV_FILE" "\$CURRENT_DIR/.env"
+chmod 600 "\$CURRENT_DIR/.env"
 
 # Load provider credentials and endpoint overrides from .env.
 set -a
 # shellcheck disable=SC1090
-source "\$APP_DIR/.env"
+source "\$CURRENT_DIR/.env"
 set +a
 
-jq -n \
-  --arg agent_model "\${OPENCLAW_AGENT_MODEL:-gemini/gemini-3-flash-preview}" \
-  --arg openrouter_api_key "\${OPENROUTER_API_KEY:-}" \
-  --arg openrouter_base_url "\${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}" \
-  --arg gemini_api_key "\${GEMINI_API_KEY:-}" \
-  --arg gemini_base_url "\${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}" \
-  --arg kimi_api_key "\${KIMI_API_KEY:-}" \
-  --arg kimi_base_url "\${KIMI_BASE_URL:-https://api.moonshot.cn/v1}" \
-  --arg groq_api_key "\${GROQ_API_KEY:-}" \
-  --arg groq_base_url "\${GROQ_BASE_URL:-https://api.groq.com/openai/v1}" \
-  '
-  {
-    browser: {
-      enabled: true,
-      executablePath: "/usr/bin/chromium",
-      headless: true,
-      noSandbox: true
-    },
-    models: {
-      providers: {
-        openrouter: {
-          baseUrl: $openrouter_base_url,
-          apiKey: $openrouter_api_key,
-          api: "openai-completions",
-          models: [
-            {
-              id: "openai/gpt-5-mini",
-              name: "GPT-5 Mini (OpenRouter)",
-              reasoning: false,
-              input: ["text"],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 200000,
-              maxTokens: 8192
-            }
-          ]
-        },
-        gemini: {
-          baseUrl: $gemini_base_url,
-          apiKey: $gemini_api_key,
-          api: "openai-completions",
-          models: [
-            {
-              id: "gemini-3-flash-preview",
-              name: "Gemini 3 Flash Preview",
-              reasoning: false,
-              input: ["text", "image"],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 1048576,
-              maxTokens: 8192
-            },
-            {
-              id: "gemini-2.5-pro",
-              name: "Gemini 2.5 Pro",
-              reasoning: false,
-              input: ["text", "image"],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 1048576,
-              maxTokens: 8192
-            },
-            {
-              id: "gemini-2.5-flash",
-              name: "Gemini 2.5 Flash",
-              reasoning: false,
-              input: ["text", "image"],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 1048576,
-              maxTokens: 8192
-            }
-          ]
-        },
-        kimi: {
-          baseUrl: $kimi_base_url,
-          apiKey: $kimi_api_key,
-          api: "openai-completions",
-          models: [
-            {
-              id: "kimi-k2-0905-preview",
-              name: "Kimi K2 0905 (Code)",
-              reasoning: false,
-              input: ["text"],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 128000,
-              maxTokens: 8192
-            }
-          ]
-        },
-        groq: {
-          baseUrl: $groq_base_url,
-          apiKey: $groq_api_key,
-          api: "openai-completions",
-          models: [
-            {
-              id: "openai/gpt-oss-120b",
-              name: "GPT-OSS 120B (Groq)",
-              reasoning: false,
-              input: ["text"],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 131072,
-              maxTokens: 8192
-            }
-          ]
-        }
-      }
-    },
-    agents: {
-      defaults: {
-        model: {
-          primary: $agent_model,
-          fallbacks: ([
-            "openrouter/openai/gpt-5-mini",
-            "gemini/gemini-3-flash-preview",
-            "gemini/gemini-2.5-pro",
-            "groq/openai/gpt-oss-120b",
-            "kimi/kimi-k2-0905-preview"
-          ] | map(select(. != $agent_model)))
-        },
-        imageModel: {
-          primary: "gemini/gemini-3-flash-preview"
-        },
-        maxConcurrent: 4
-      },
-      list: [
-        { id: "main", default: true, name: "Javis", model: $agent_model },
-        { id: "lena", name: "Lena", model: "gemini/gemini-2.5-pro" },
-        { id: "marcus", name: "Marcus", model: "groq/openai/gpt-oss-120b" }
-      ]
-    },
-    tools: {
-      elevated: {
-        enabled: false
-      },
-      agentToAgent: {
-        enabled: true,
-        allow: ["main", "lena", "marcus"]
-      }
-    },
-    bindings: [
-      { agentId: "main", match: { channel: "telegram", accountId: "javis" } },
-      { agentId: "lena", match: { channel: "telegram", accountId: "lena" } },
-      { agentId: "marcus", match: { channel: "telegram", accountId: "marcus" } }
-    ],
-    channels: {
-      telegram: {
-        enabled: true,
-        dmPolicy: "pairing",
-        groupPolicy: "allowlist",
-        groupAllowFrom: ["@YOUR_TELEGRAM_ADMIN_USERNAME"],
-        groups: {
-          "*": {
-            requireMention: true
-          }
-        },
-        historyLimit: 20,
-        linkPreview: false,
-        streamMode: "partial",
-        accounts: {
-          javis: { botToken: "YOUR_JAVIS_BOT_TOKEN" },
-          lena: { botToken: "YOUR_LENA_BOT_TOKEN" },
-          marcus: { botToken: "YOUR_MARCUS_BOT_TOKEN" }
-        }
-      }
-    },
-    gateway: {
-      mode: "local",
-      controlUi: {
-        allowInsecureAuth: false,
-        dangerouslyDisableDeviceAuth: false
-      },
-      trustedProxies: [
-        "172.18.0.1",
-        "172.16.0.0/12",
-        "10.0.0.0/8",
-        "192.168.0.0/16",
-        "127.0.0.1"
-      ]
-    }
-  }
-  ' > "\$OPENCLAW_CONFIG_DIR/openclaw.json"
+mkdir -p "\${OPENCLAW_LOGS_DIR:-\$OPENCLAW_CONFIG_DIR/logs}"
 
-cd "\$APP_DIR"
+cp "\$CURRENT_DIR/configs/openclaw.json" "\$OPENCLAW_CONFIG_DIR/openclaw.json"
+
+# Patch Telegram settings from env (single-bot mode)
+if [[ "\${ENABLE_TELEGRAM:-false}" == "true" ]]; then
+  allow_json=\$(jq -n --arg csv "\${TELEGRAM_ALLOW_FROM:-}" '\$csv | split(\",\") | map(gsub(\"^\\\\s+|\\\\s+\$\"; \"\")) | map(select(length>0))')
+  group_allow_json=\$(jq -n --arg csv "\${TELEGRAM_GROUP_ALLOW_FROM:-}" '\$csv | split(\",\") | map(gsub(\"^\\\\s+|\\\\s+\$\"; \"\")) | map(select(length>0))')
+  jq \
+    --arg token "\${TELEGRAM_BOT_TOKEN}" \
+    --argjson allowFrom "\$allow_json" \
+    --argjson groupAllowFrom "\$group_allow_json" \
+    '
+      .commands.native = "off"
+      | .channels = (.channels // {})
+      | .channels.telegram = (.channels.telegram // {})
+      | .channels.telegram.enabled = true
+      | .channels.telegram.botToken = $token
+      | .channels.telegram.customCommands = []
+      | .channels.telegram.commands.native = false
+      | .channels.telegram.allowFrom = $allowFrom
+      | .channels.telegram.groupAllowFrom = $groupAllowFrom
+      | .channels.telegram.streamMode = "off"
+      | .channels.telegram.chunkMode = "newline"
+      | .channels.telegram.textChunkLimit = 3900
+    ' "\$OPENCLAW_CONFIG_DIR/openclaw.json" > /tmp/openclaw.json && sudo mv /tmp/openclaw.json "\$OPENCLAW_CONFIG_DIR/openclaw.json"
+else
+  jq \
+    '
+      .channels = (.channels // {})
+      | .channels.telegram = (.channels.telegram // {})
+      | .channels.telegram.enabled = false
+    ' "\$OPENCLAW_CONFIG_DIR/openclaw.json" > /tmp/openclaw.json && sudo mv /tmp/openclaw.json "\$OPENCLAW_CONFIG_DIR/openclaw.json"
+fi
+
+cd "\$CURRENT_DIR"
 if ! sudo docker image inspect "\${OPENCLAW_IMAGE:-openclaw:chromium}" >/dev/null 2>&1; then
   UPSTREAM_DIR="\$HOME/openclaw-upstream"
   if [[ -d "\$UPSTREAM_DIR/.git" ]]; then
@@ -699,6 +578,12 @@ fi
 
 sudo docker compose pull || true
 sudo docker compose up -d
+
+echo "[INFO] docker compose ps:"
+sudo docker compose ps || true
+
+echo "[INFO] probing gateway health on 127.0.0.1:\$OPENCLAW_GATEWAY_PORT ..."
+curl -sf "http://127.0.0.1:\$OPENCLAW_GATEWAY_PORT/_health" >/dev/null 2>&1 || curl -sf "http://127.0.0.1:\$OPENCLAW_GATEWAY_PORT/health" >/dev/null 2>&1 || true
 
 if [[ "\$ENABLE_CADDY" == "true" ]]; then
   sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https >/dev/null
