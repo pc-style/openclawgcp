@@ -1,0 +1,58 @@
+services:
+  openclaw:
+    image: openclaw:chromium
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    init: true
+    depends_on:
+      - redis
+      - playwright
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    volumes:
+      - ~/.openclaw:/home/node/.openclaw
+      - ~/.openclaw/workspace:/home/node/.openclaw/workspace
+      - ~/.openclaw/logs:/home/node/.openclaw/logs
+    env_file:
+      - .env
+    ports:
+      - "18789:18789"
+    environment:
+      - NODE_ENV=production
+      - TZ=Europe/Warsaw
+      - REDIS_URL=redis://redis:6379
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 6G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  redis:
+    image: redis:7-alpine
+    container_name: openclaw-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.40.0-focal
+    container_name: openclaw-browser
+    restart: unless-stopped
+    shm_size: 2gb
+    environment:
+      - DISPLAY=:99
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+volumes:
+  redis-data:
