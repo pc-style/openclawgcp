@@ -48,6 +48,7 @@ services:
     shm_size: 2gb
     environment:
       - DISPLAY=:99
+    command: tail -f /dev/null
     deploy:
       resources:
         limits:
