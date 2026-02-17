@@ -1,91 +1,91 @@
 {
-    "llm": {
-        "provider": "google",
-        "model": "gemini-2.0-flash-exp",
-        "fallback": "gemini-1.5-pro",
-        "maxTokens": 8192,
-        "temperature": 0.7
-    },
-    "search": {
-        "provider": "perplexity",
-        "model": "sonar-reasoning-pro",
-        "defaultSearchMode": "web"
-    },
-    "channels": {
-        "telegram": {
-            "enabled": true,
-            "token": "env:TELEGRAM_BOT_TOKEN",
-            "chatId": "env:TELEGRAM_CHAT_ID"
-        }
-    },
-    "heartbeat": {
-        "interval": 30,
-        "timezone": "Europe/Warsaw",
-        "maxConcurrentTasks": 4,
-        "schedules": [
-            {
-                "name": "daily_brief",
-                "cron": "0 7 * * *",
-                "handler": "daily_brief"
-            },
-            {
-                "name": "product_hunt_brief",
-                "cron": "55 14 * * *",
-                "handler": "product_hunt_brief"
-            }
-        ]
-    },
-    "email": {
-        "provider": "gmail",
-        "triageEnabled": true,
-        "maxAlertsPerDay": 6,
-        "labels": [
-            "FYI",
-            "To Respond",
-            "Newsletters",
-            "Notifications",
-            "Invoices",
-            "Lindy",
-            "Calendar",
-            "Promotions",
-            "Comments"
-        ]
-    },
-    "calendar": {
-        "provider": "google",
-        "schedulingPreferences": {
-            "earliestHour": 9,
-            "latestHour": 17,
-            "maxMeetingHoursPerDay": 4,
-            "defaultDurationMinutes": 30,
-            "allowedDays": [
-                "monday",
-                "tuesday",
-                "wednesday",
-                "thursday",
-                "friday",
-                "saturday",
-                "sunday"
-            ]
-        }
-    },
-    "meetings": {
-        "recordingEnabled": true,
-        "prepMinutesBefore": 15,
-        "prepExternalOnly": true
-    },
-    "browser": {
-        "headless": true,
-        "timeout": 30000,
-        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-    },
-    "memory": {
-        "maxContextLength": 16000,
-        "persistInterval": 300,
-        "embeddingModel": "text-embedding-004"
-    },
-    "logging": {
-        "level": "info",
-        "destination": "/root/.openclaw/logs"
+  "llm": {
+    "provider": "google",
+    "model": "gemini-3-flash-preview",
+    "fallback": "gemini-2.5-pro",
+    "maxTokens": 8192,
+    "temperature": 0.7
+  },
+  "search": {
+    "provider": "perplexity",
+    "model": "sonar-reasoning-pro",
+    "defaultSearchMode": "web"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "chatId": "${TELEGRAM_CHAT_ID}"
     }
+  },
+  "heartbeat": {
+    "interval": 30,
+    "timezone": "Europe/Warsaw",
+    "maxConcurrentTasks": 4,
+    "schedules": [
+      {
+        "name": "daily_brief",
+        "cron": "0 7 * * *",
+        "handler": "daily_brief"
+      },
+      {
+        "name": "product_hunt_brief",
+        "cron": "55 14 * * *",
+        "handler": "product_hunt_brief"
+      }
+    ]
+  },
+  "email": {
+    "provider": "gmail",
+    "triageEnabled": true,
+    "maxAlertsPerDay": 6,
+    "labels": [
+      "FYI",
+      "To Respond",
+      "Newsletters",
+      "Notifications",
+      "Invoices",
+      "Lindy",
+      "Calendar",
+      "Promotions",
+      "Comments"
+    ]
+  },
+  "calendar": {
+    "provider": "google",
+    "schedulingPreferences": {
+      "earliestHour": 9,
+      "latestHour": 17,
+      "maxMeetingHoursPerDay": 4,
+      "defaultDurationMinutes": 30,
+      "allowedDays": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+      ]
+    }
+  },
+  "meetings": {
+    "recordingEnabled": true,
+    "prepMinutesBefore": 15,
+    "prepExternalOnly": true
+  },
+  "browser": {
+    "headless": true,
+    "timeout": 30000,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+  },
+  "memory": {
+    "maxContextLength": 16000,
+    "persistInterval": 300,
+    "embeddingModel": "text-embedding-004"
+  },
+  "logging": {
+    "level": "info",
+    "destination": "/root/.openclaw/logs"
+  }
 }

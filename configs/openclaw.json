@@ -1,6 +1,7 @@
 {
   "meta": {
-    "lastTouchedVersion": "2026.2.3"
+    "lastTouchedVersion": "2026.2.16",
+    "lastTouchedAt": "2026-02-17T09:09:02.364Z"
   },
   "browser": {
     "enabled": true,
@@ -17,111 +18,77 @@
   },
   "models": {
     "providers": {
-      "openrouter": {
-        "baseUrl": "https://openrouter.ai/api/v1",
-        "apiKey": "YOUR_OPENROUTER_API_KEY",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "openai/gpt-5-mini",
-            "name": "GPT-5 Mini (OpenRouter)",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 200000,
-            "maxTokens": 8192
-          },
-          {
-            "id": "anthropic/claude-sonnet-4.5",
-            "name": "Claude Sonnet 4.5 (OpenRouter)",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 200000,
-            "maxTokens": 8192
-          }
-        ]
-      },
       "gemini": {
         "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "apiKey": "YOUR_GEMINI_API_KEY",
+        "apiKey": "${GOOGLE_API_KEY}",
         "api": "openai-completions",
         "models": [
           {
             "id": "gemini-3-flash-preview",
             "name": "Gemini 3 Flash Preview",
             "reasoning": false,
-            "input": ["text", "image"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
             "contextWindow": 1048576,
             "maxTokens": 8192
           },
           {
-            "id": "gemini-2.5-pro",
-            "name": "Gemini 2.5 Pro",
+            "id": "gemini-2.0-flash-thinking-exp-01-21",
+            "name": "Gemini 2.0 Flash Thinking",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1048576,
+            "maxTokens": 65536
+          },
+          {
+            "id": "gemini-2.0-flash-exp",
+            "name": "Gemini 2.0 Flash",
             "reasoning": false,
-            "input": ["text", "image"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
             "contextWindow": 1048576,
             "maxTokens": 8192
           },
           {
-            "id": "gemini-2.5-flash",
-            "name": "Gemini 2.5 Flash",
+            "id": "gemini-1.5-pro",
+            "name": "Gemini 1.5 Pro",
             "reasoning": false,
-            "input": ["text", "image"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 1048576,
-            "maxTokens": 8192
-          }
-        ]
-      },
-      "kimi": {
-        "baseUrl": "https://api.moonshot.cn/v1",
-        "apiKey": "YOUR_KIMI_API_KEY",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "kimi-k2-0905-preview",
-            "name": "Kimi K2 0905 (Code)",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 128000,
-            "maxTokens": 8192
-          },
-          {
-            "id": "kimi-k2-turbo-preview",
-            "name": "Kimi K2 Turbo",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 128000,
-            "maxTokens": 8192
-          }
-        ]
-      },
-      "groq": {
-        "baseUrl": "https://api.groq.com/openai/v1",
-        "apiKey": "YOUR_GROQ_API_KEY",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "openai/gpt-oss-120b",
-            "name": "GPT-OSS 120B (Groq)",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 131072,
-            "maxTokens": 8192
-          },
-          {
-            "id": "llama-3.3-70b-versatile",
-            "name": "Llama 3.3 70B Versatile (Groq)",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 131072,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 2000000,
             "maxTokens": 8192
           }
         ]
@@ -133,10 +100,7 @@
       "model": {
         "primary": "gemini/gemini-3-flash-preview",
         "fallbacks": [
-          "openrouter/openai/gpt-5-mini",
-          "gemini/gemini-2.5-pro",
-          "groq/openai/gpt-oss-120b",
-          "kimi/kimi-k2-0905-preview"
+          "gemini/gemini-1.5-pro"
         ]
       },
       "imageModel": {
@@ -172,91 +136,52 @@
       {
         "id": "lena",
         "name": "Lena",
-        "model": "gemini/gemini-2.5-pro"
-      },
-      {
-        "id": "marcus",
-        "name": "Marcus",
-        "model": "groq/openai/gpt-oss-120b"
+        "model": "gemini/gemini-1.5-pro"
       }
     ]
   },
   "tools": {
-    "elevated": {
-      "enabled": false
-    },
     "agentToAgent": {
       "enabled": true,
-      "allow": ["main", "lena", "marcus"]
+      "allow": [
+        "main",
+        "lena"
+      ]
+    },
+    "elevated": {
+      "enabled": false
     }
   },
-  "bindings": [
-    {
-      "agentId": "main",
-      "match": { "channel": "telegram", "accountId": "javis" }
-    },
-    {
-      "agentId": "lena",
-      "match": { "channel": "telegram", "accountId": "lena" }
-    },
-    {
-      "agentId": "marcus",
-      "match": { "channel": "telegram", "accountId": "marcus" }
-    }
-  ],
   "messages": {
     "ackReactionScope": "group-mentions"
   },
   "commands": {
     "native": "auto",
-    "nativeSkills": "auto",
+    "nativeSkills": false,
     "restart": true
   },
   "channels": {
     "telegram": {
-      "enabled": true,
+      "commands": {
+        "native": false
+      },
       "dmPolicy": "pairing",
-      "groupPolicy": "allowlist",
-      "groupAllowFrom": ["@YOUR_TELEGRAM_ADMIN_USERNAME"],
       "groups": {
         "*": {
           "requireMention": true
         }
       },
+      "groupAllowFrom": [
+        "8153548124"
+      ],
+      "groupPolicy": "allowlist",
       "historyLimit": 20,
-      "linkPreview": false,
+      "streamMode": "partial",
       "actions": {
         "reactions": true,
         "sendMessage": true
       },
-      "customCommands": [
-        { "command": "deal", "description": "🔥 View today's hot deals" },
-        { "command": "seller", "description": "🏪 Learn how to become a seller" },
-        { "command": "price", "description": "💰 View platform fee table" },
-        { "command": "web", "description": "🌐 Open keothom.bid website" },
-        { "command": "help", "description": "❓ Help and usage guide" }
-      ],
-      "streamMode": "partial",
-      "accounts": {
-        "javis": {
-          "dmPolicy": "pairing",
-          "botToken": "YOUR_JAVIS_BOT_TOKEN",
-          "groupPolicy": "allowlist",
-          "streamMode": "partial"
-        },
-        "lena": {
-          "dmPolicy": "pairing",
-          "botToken": "YOUR_LENA_BOT_TOKEN",
-          "groupPolicy": "allowlist",
-          "streamMode": "partial"
-        },
-        "marcus": {
-          "dmPolicy": "pairing",
-          "botToken": "YOUR_MARCUS_BOT_TOKEN",
-          "groupPolicy": "allowlist",
-          "streamMode": "partial"
-        }
-      }
+      "linkPreview": false
     }
   },
   "gateway": {
@@ -272,5 +197,12 @@
       "192.168.0.0/16",
       "127.0.0.1"
     ]
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
   }
 }
