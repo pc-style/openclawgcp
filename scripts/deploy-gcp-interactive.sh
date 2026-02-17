@@ -543,8 +543,7 @@ if [[ "\${ENABLE_TELEGRAM:-false}" == "true" ]]; then
     --argjson allowFrom "\$allow_json" \
     --argjson groupAllowFrom "\$group_allow_json" \
     '
-      .commands.native = "off"
-      | .channels = (.channels // {})
+      .channels = (.channels // {})
       | .channels.telegram = (.channels.telegram // {})
       | .channels.telegram.enabled = true
       | .channels.telegram.botToken = $token
